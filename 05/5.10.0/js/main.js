@@ -48,7 +48,7 @@ const y = d3.scaleLinear()
 	.domain([0, 90])
 	.range([HEIGHT, 0])
 
-const r = d3.scaleLinear()
+const r = d3.scaleLog()
 		.range([5, 25])
 
 const color = d3.scaleOrdinal(d3.schemeTableau10)
@@ -60,27 +60,34 @@ d3.json("data/data.json").then(data =>{
 	data.forEach((year) => {
     	year.countries = year.countries.filter(c => c.income != null && c.life_exp != null && c.population != null);
 	});
+	
+	// Get absolute min and max population across all years
+	const allCountries = data.flatMap(year => year.countries);
+	const populationExtent = d3.extent(allCountries, d => d.population);
+	r.domain(populationExtent);
+	console.log(populationExtent)
+
+	const continents = allCountries.map(d => d.continent);
+	//color.domain(data[0].countries.map(d => d.continent))
+	color.domain(continents)
 	// newData = data.filter(d => d.year == 2000);
 	
-	d3.interval(() => {
-		//const years = data.map(d => d.year);
-		const years = [1800, 2000];
+	//const years = data.map(d => d.year);
+	const years = data.map(d => d.year);  //[1800, 1900, 2000];
+	let yearIndex = 0;
 	
-
-		years.forEach((year) => {
-			newData = data.filter(d => d.year == year);
-			update(newData);
-		});
+	d3.interval(() => {
+		newData = data.filter(d => d.year == years[yearIndex]);
+		update(newData);
+		yearIndex = (yearIndex + 1) % years.length;
 	}, 1000)
 
 	update(data)
+
 })
 
 function update(data) {
 	const t = d3.transition().duration(100)
-
-	r.domain(d3.extent(data[0].countries, d => d.population))
-	color.domain(data[0].countries.map(d => d.continent))
 
 	const bubbels = g.selectAll("circle")
         .data(data[0].countries, d => d.country)
@@ -99,32 +106,27 @@ function update(data) {
         .attr("class", "y axis")
         .call(yAxisCall)
 
-	g.append("text")
+	let yearLabel = g.selectAll(".year-label").data([data[0].year])
+	
+	yearLabel.enter().append("text")
 		.attr("class", "year-label")
 		.attr("x", WIDTH - 40)
-		.attr("y", HEIGHT - 15
-		)
+		.attr("y", HEIGHT - 15)
 		.attr("text-anchor", "end") 
-		// .attr("dx", "-0.5em")
-		// .attr("dy", "-0.5em")
 		.attr("fill", "grey")
 		.attr("opacity", "0.5")
 		.style("font-size", "24px")
-		.text("1800");
+		.merge(yearLabel)
+		.text(data[0].year);
 
 	bubbels.exit().transition(t).remove()
-
-	bubbels
-		.attr("cx", d => x(d.income))
-		.attr("cy", d => y(d.life_exp))
-		.attr("r", d => r(Math.sqrt(d.population / Math.PI)))
-		.attr("fill", d => color(d.continent))
 	
 	bubbels.enter().append("circle")
-		.attr("cx", d => x(d.income))
-		.attr("cy", d => y(d.life_exp))
-		.attr("r", d => r(Math.sqrt(d.population / Math.PI)))
-		.attr("fill", d => color(d.continent))
 		.attr("opacity", "0.5")
-
+		.merge(bubbels)
+		.transition(t)
+			.attr("cx", d => x(d.income))
+			.attr("cy", d => y(d.life_exp))
+			.attr("r", d => r(Math.sqrt(d.population / Math.PI)))
+			.attr("fill", d => color(d.continent))
 }
