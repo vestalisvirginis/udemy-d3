@@ -82,6 +82,7 @@ function update(data) {
   const rects = g.selectAll("rect")
     .data(data)
 
+    console.log(rects)
   // EXIT old elements not present in new data.
   rects.exit().remove()
 
