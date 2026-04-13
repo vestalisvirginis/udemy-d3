@@ -48,7 +48,7 @@ const y = d3.scaleLinear()
 	.domain([0, 90])
 	.range([HEIGHT, 0])
 
-const r = d3.scaleLog()
+const r = d3.scaleSqrt()
 		.range([5, 25])
 
 const color = d3.scaleOrdinal(d3.schemeTableau10)
@@ -80,7 +80,7 @@ d3.json("data/data.json").then(data =>{
 		newData = data.filter(d => d.year == years[yearIndex]);
 		update(newData);
 		yearIndex = (yearIndex + 1) % years.length;
-	}, 1000)
+	}, 100)
 
 	update(data)
 
@@ -119,7 +119,7 @@ function update(data) {
 		.merge(yearLabel)
 		.text(data[0].year);
 
-	bubbels.exit().transition(t).remove()
+	
 	
 	bubbels.enter().append("circle")
 		.attr("opacity", "0.5")
@@ -127,6 +127,7 @@ function update(data) {
 		.transition(t)
 			.attr("cx", d => x(d.income))
 			.attr("cy", d => y(d.life_exp))
-			.attr("r", d => r(Math.sqrt(d.population / Math.PI)))
+			.attr("r", d => r(d.population))
 			.attr("fill", d => color(d.continent))
+	bubbels.exit().remove()
 }
